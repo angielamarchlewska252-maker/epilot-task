@@ -4,6 +4,9 @@ import { comparePrices } from "./money.js";
 export const SETTLEMENT_DELAY_MS = 60_000;
 export const DEFAULT_QUOTE_MAX_AGE_MS = 15_000;
 export const PRICE_CACHE_MS = 4_000;
+/** CoinGecko's public endpoint rate-limits frequent calls, and its timestamp can lag about a minute. */
+export const COINGECKO_PRICE_CACHE_MS = 20_000;
+export const COINGECKO_QUOTE_MAX_AGE_MS = 120_000;
 export const HISTORY_LIMIT = 10;
 export const QUOTE_FUTURE_SKEW_MS = 5_000;
 

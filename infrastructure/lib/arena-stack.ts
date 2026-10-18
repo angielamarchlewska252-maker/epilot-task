@@ -38,9 +38,10 @@ export class ArenaStack extends cdk.Stack {
     const code = lambda.Code.fromAsset(path.join(dirname, "../../apps/api/dist"));
     const environment = {
       TABLE_NAME: players.tableName,
-      PRICE_PROVIDER: "coinbase",
-      COINBASE_TICKER_URL: "https://api.exchange.coinbase.com/products/BTC-USD/ticker",
-      QUOTE_MAX_AGE_MS: "15000",
+      PRICE_PROVIDER: "coingecko",
+      COINGECKO_PRICE_URL:
+        "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_last_updated_at=true&precision=2",
+      QUOTE_MAX_AGE_MS: "120000",
       ALLOWED_ORIGIN: allowedOrigin,
       NODE_ENV: "production",
     };

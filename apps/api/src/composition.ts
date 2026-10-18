@@ -2,13 +2,14 @@ import { randomUUID } from "node:crypto";
 import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 import { systemClock } from "./domain/clock.js";
 import { GuessService } from "./domain/guess-service.js";
-import { PRICE_CACHE_MS } from "./domain/rules.js";
+import { COINGECKO_PRICE_CACHE_MS, PRICE_CACHE_MS } from "./domain/rules.js";
 import { createApp } from "./http/app.js";
 import { loadConfig } from "./config.js";
 import { createDynamoClient } from "./persistence/dynamo-client.js";
 import { DynamoPlayerRepository } from "./persistence/dynamo-player-repository.js";
 import { CachedPriceProvider } from "./prices/cached-price-provider.js";
 import { CoinbasePriceProvider } from "./prices/coinbase-price-provider.js";
+import { CoinGeckoPriceProvider } from "./prices/coingecko-price-provider.js";
 import { MockPriceProvider } from "./prices/mock-price-provider.js";
 
 export function buildRuntime(env: NodeJS.ProcessEnv = process.env) {
@@ -31,8 +32,11 @@ export function buildRuntime(env: NodeJS.ProcessEnv = process.env) {
         )
       : null;
   const market = new CachedPriceProvider(
-    mock ?? new CoinbasePriceProvider(config.coinbaseUrl),
-    PRICE_CACHE_MS,
+    mock ??
+      (config.priceProvider === "coinbase"
+        ? new CoinbasePriceProvider(config.coinbaseUrl)
+        : new CoinGeckoPriceProvider(config.coingeckoUrl)),
+    config.priceProvider === "coingecko" ? COINGECKO_PRICE_CACHE_MS : PRICE_CACHE_MS,
     clock,
   );
   const service = new GuessService(repository, market, clock, randomUUID, {

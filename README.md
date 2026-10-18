@@ -28,7 +28,7 @@ There is no public URL yet. AWS credentials are not available in this workspace,
 - Hono on Node.js for the local API, and the same app on AWS Lambda
 - Zod contracts in `@arena/shared`
 - DynamoDB, API Gateway HTTP API, EventBridge, AWS CDK
-- Coinbase Exchange public ticker for BTC-USD
+- CoinGecko public BTC/USD price. Coinbase Exchange is still supported with `PRICE_PROVIDER=coinbase`.
 
 ## Architecture
 
@@ -37,7 +37,7 @@ flowchart LR
   web[React_UI]
   api[Hono_API]
   game[GuessService]
-  prices[CoinbasePriceProvider]
+  prices[CoinGeckoPriceProvider]
   db[DynamoDB]
   worker[MinuteWorker]
   web -->|"Bearer token"| api
@@ -54,21 +54,21 @@ The open browser polls `GET /api/me` every few seconds while a guess is active. 
 The rule is not "settle exactly at 60 seconds."
 
 1. `POST /api/guesses` accepts only `{ "direction": "UP" }` or `{ "direction": "DOWN" }`.
-2. The server reads a fresh Coinbase last-trade price and stores it as the entry price.
+2. The server reads a fresh BTC/USD price and stores it as the entry price.
 3. `eligibleAt` is the server time plus 60 seconds.
 4. Before `eligibleAt`, the guess stays pending.
 5. After `eligibleAt`, settlement needs a quote whose trade time is at or after the deadline.
 6. If that price is greater than the entry price, UP is correct and DOWN is incorrect.
 7. If it is lower, DOWN is correct and UP is incorrect.
 8. If it is equal, the guess stays pending and is checked again later.
-9. If Coinbase times out, returns a bad payload, or the quote is older than 15 seconds, the guess stays pending. No score change is invented.
+9. If the price service times out, returns a bad payload, or the quote is older than 2 minutes, the guess stays pending. No score change is invented.
 10. The score changes in one conditional DynamoDB update. A retry cannot apply it twice.
 
 Prices are decimal strings compared with integers at 8 decimal places. Binary floating point is not used for the result.
 
 ### Limits of the market data
 
-Coinbase's ticker is the last trade, not a one-minute candle. The `time` field is when that trade happened. If no new trade prints after the deadline, the guess stays open even though the clock has passed 60 seconds. Two players who guess at the same moment share the same public trade, but each guess stores its own entry price. The UI countdown is only a hint. A wrong laptop clock does not change the result, because the deadline and the score are stored on the server. Responses include `serverTime`, and the countdown uses that offset.
+The price comes from CoinGecko's public Bitcoin/USD quote, including the time CoinGecko last updated it. This is an aggregated market price, not one exchange's last trade. Coinbase Exchange was the first choice, but that host cannot be reached from this network. Entry and settlement still use one source. If CoinGecko has not published a newer price after the deadline, the guess stays open even though 60 seconds have passed. The UI countdown is only a hint. A wrong laptop clock does not change the result, because the deadline and the score are stored on the server. Responses include `serverTime`, and the countdown uses that offset.
 
 ## Getting started
 
@@ -86,8 +86,8 @@ Useful variables:
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `PORT` | `3001` | API port |
-| `PRICE_PROVIDER` | `coinbase` | `coinbase` or local `mock` |
-| `QUOTE_MAX_AGE_MS` | `15000` | Reject older trades |
+| `PRICE_PROVIDER` | `coingecko` | `coingecko`, `coinbase`, or local `mock` |
+| `QUOTE_MAX_AGE_MS` | `120000` | Reject older quotes |
 | `ALLOWED_ORIGIN` | `http://localhost:5173` | Browser origin allowed to call the API |
 | `VITE_API_URL` | empty | Set this for a production frontend build |
 
@@ -155,11 +155,11 @@ Deploy only after you approve the AWS cost. This stack is small and on-demand, b
 ### Post-deploy checklist
 
 - `GET {ApiUrl}/api/health` returns `status: ok`.
-- `GET {ApiUrl}/api/price` returns a Coinbase price. If it returns 503, the function cannot reach Coinbase or the quote is stale.
+- `GET {ApiUrl}/api/price` returns a CoinGecko BTC/USD price. If it returns 503, the function cannot reach CoinGecko or the quote is stale.
 - Open the frontend, refresh, and confirm the score is still there.
 - Submit one guess and confirm a second guess returns 409.
 - Wait past 60 seconds. The score changes only after the price moves.
-- Confirm the dev quote route is absent. Production sets `NODE_ENV=production` and `PRICE_PROVIDER=coinbase`.
+- Confirm the dev quote route is absent. Production sets `NODE_ENV=production` and `PRICE_PROVIDER=coingecko`.
 
 The Lambda bundle includes the AWS SDK, so the function does not depend on the SDK copy inside the Lambda runtime.
 
@@ -168,11 +168,11 @@ The Lambda bundle includes the AWS SDK, so the function does not depend on the S
 - One service owns the rules. HTTP handlers, the poll, and the worker all call it.
 - DynamoDB conditional updates protect the single active guess and the one-time score change.
 - The browser token is random. The database stores only its SHA-256 hash.
-- A four-second price cache serves the dashboard. Settlement will not reuse a trade from before the deadline.
+- The server caches the CoinGecko price for 20 seconds so the page can refresh without hitting the public rate limit. Settlement will not reuse a quote from before the deadline.
 
 ## Known limitations
 
-- This workspace could not reach Coinbase during the local smoke test. The API failed closed with `503` and did not open a guess. Provider parsing is covered with a recorded response, and the full game flow was run with the mock provider.
+- Coinbase Exchange cannot be reached from this network, so the live price comes from CoinGecko. Set `PRICE_PROVIDER=coinbase` only where that host answers. Provider failures still return 503 and do not invent a score.
 - The AWS stack has not been deployed from this workspace, so this README has no live URL yet.
 - The worker runs once a minute and handles 25 due guesses per run. A closed tab can settle up to about a minute late, and a large backlog takes several minutes.
 - The due-guess index is eventually consistent. The player's own `GET /api/me` uses a consistent read, so the open app is not affected.

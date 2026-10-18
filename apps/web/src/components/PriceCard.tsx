@@ -19,12 +19,12 @@ export function PriceCard({ price, observedAt, fresh, loading, unavailable }: Pr
         {unavailable
           ? "Market data is temporarily unavailable."
           : observedAt
-            ? `Last trade ${formatTime(observedAt)}`
+            ? `Updated ${formatTime(observedAt)}`
             : "Waiting for the latest trade."}
       </p>
       {!loading && !unavailable && !fresh ? (
         <p className="mt-2 text-sm text-amber-200" role="status">
-          This price looks stale. New predictions stay closed until a fresh trade arrives.
+          This price looks stale. New predictions stay closed until a fresh price arrives.
         </p>
       ) : null}
     </section>

@@ -44,4 +44,21 @@ describe("CachedPriceProvider", () => {
     expect(settlement).toEqual(later);
     expect(getQuote).toHaveBeenCalledTimes(2);
   });
+
+  it("keeps the last quote when the next display fetch fails", async () => {
+    const clock = new ManualClock(Date.parse("2026-10-18T12:00:00.000Z"));
+    const quote: MarketQuote = {
+      price: "70000",
+      observedAt: "2026-10-18T12:00:00.000Z",
+      source: "test",
+    };
+    const getQuote = vi.fn<() => Promise<MarketQuote>>();
+    getQuote.mockResolvedValueOnce(quote).mockRejectedValueOnce(new Error("rate limit"));
+    const provider = new CachedPriceProvider({ getQuote }, 4_000, clock);
+
+    await provider.getQuote();
+    clock.advance(5_000);
+
+    await expect(provider.getQuote()).resolves.toEqual(quote);
+  });
 });

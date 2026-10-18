@@ -20,7 +20,12 @@ export class CachedPriceProvider implements MarketData {
     if (this.cached && now - this.cached.fetchedAt < this.ttlMs) {
       return this.cached.quote;
     }
-    return this.refresh();
+    try {
+      return await this.refresh();
+    } catch (error) {
+      if (this.cached) return this.cached.quote;
+      throw error;
+    }
   }
 
   async getSettlementQuote(eligibleAtMs: number): Promise<MarketQuote> {
@@ -32,7 +37,14 @@ export class CachedPriceProvider implements MarketData {
     ) {
       return this.cached.quote;
     }
-    return this.refresh();
+    try {
+      return await this.refresh();
+    } catch (error) {
+      if (this.cached && Date.parse(this.cached.quote.observedAt) >= eligibleAtMs) {
+        return this.cached.quote;
+      }
+      throw error;
+    }
   }
 
   invalidate(): void {
