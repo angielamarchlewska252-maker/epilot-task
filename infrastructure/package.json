@@ -1,0 +1,22 @@
+{
+  "name": "@arena/infra",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "tsc --noEmit",
+    "synth": "cdk synth",
+    "deploy": "cdk deploy"
+  },
+  "dependencies": {
+    "aws-cdk-lib": "^2.201.0",
+    "constructs": "^10.4.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.30",
+    "aws-cdk": "^2.1016.0",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3"
+  }
+}

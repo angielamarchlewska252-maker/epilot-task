@@ -10,3 +10,6 @@ cdk.out
 .DS_Store
 Thumbs.db
 dynamodb-data
+
+# Kept on this machine only. Do not publish.
+docs/
