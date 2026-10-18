@@ -1,0 +1,11 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+  - "infrastructure"
+
+onlyBuiltDependencies:
+  - esbuild
+  - leveldown
+allowBuilds:
+  esbuild: set this to true or false
+  leveldown: set this to true or false
