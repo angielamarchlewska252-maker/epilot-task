@@ -7,6 +7,7 @@ export default tseslint.config(
       "**/dist/**",
       "**/coverage/**",
       "**/cdk.out/**",
+      "**/.wrangler/**",
       "**/node_modules/**",
     ],
   },

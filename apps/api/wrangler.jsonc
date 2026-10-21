@@ -1,0 +1,30 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "epilot-btc-arena-api",
+	"main": "src/cloudflare.ts",
+	"compatibility_date": "2026-10-21",
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
+	"workers_dev": true,
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "btc-arena-db",
+			"database_id": "e8f02824-734e-43cd-8d61-0e011a0073f9",
+			"migrations_dir": "migrations",
+			"remote": false
+		}
+	],
+	"triggers": {
+		"crons": [
+			"* * * * *"
+		]
+	},
+	"vars": {
+		"ALLOWED_ORIGIN": "https://epilot-btc-arena.pages.dev",
+		"PRICE_PROVIDER": "coinbase",
+		"QUOTE_MAX_AGE_MS": "15000",
+		"COINBASE_TICKER_URL": "https://api.exchange.coinbase.com/products/BTC-USD/ticker"
+	}
+}

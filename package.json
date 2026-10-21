@@ -8,6 +8,9 @@
   },
   "scripts": {
     "dev": "pnpm --parallel --filter @arena/api --filter @arena/web dev",
+    "db:migrate": "pnpm --filter @arena/api db:migrate",
+    "deploy:api": "pnpm --filter @arena/api deploy",
+    "deploy:web": "pnpm --filter @arena/api pages:deploy",
     "test": "pnpm -r --if-present test",
     "typecheck": "pnpm -r --if-present typecheck",
     "lint": "eslint .",

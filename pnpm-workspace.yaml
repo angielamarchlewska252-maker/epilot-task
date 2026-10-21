@@ -6,6 +6,10 @@ packages:
 onlyBuiltDependencies:
   - esbuild
   - leveldown
+  - workerd
+  - wrangler
 allowBuilds:
-  esbuild: set this to true or false
-  leveldown: set this to true or false
+  esbuild: true
+  leveldown: true
+  workerd: true
+  wrangler: true

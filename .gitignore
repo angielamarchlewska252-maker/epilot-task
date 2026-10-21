@@ -10,6 +10,8 @@ cdk.out
 .DS_Store
 Thumbs.db
 dynamodb-data
+.wrangler/
+.dev.vars
 
 # Kept on this machine only. Do not publish.
 docs/

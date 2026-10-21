@@ -1,6 +1,6 @@
 import { parsePrice } from "../domain/money.js";
 import type { MarketQuote } from "../domain/rules.js";
-import { PriceProviderError } from "./price-provider.js";
+import { logPriceFailure, PriceProviderError } from "./price-provider.js";
 
 export const COINGECKO_BTC_URL =
   "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_last_updated_at=true&precision=2";
@@ -24,11 +24,13 @@ export class CoinGeckoPriceProvider {
   async getQuote(): Promise<MarketQuote> {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.timeoutMs);
+    let status: number | undefined;
     try {
       const response = await this.fetchImpl(this.url, {
         signal: controller.signal,
         headers: { accept: "application/json" },
       });
+      status = response.status;
       if (!response.ok) {
         throw new PriceProviderError(`CoinGecko returned HTTP ${response.status}.`);
       }
@@ -40,6 +42,7 @@ export class CoinGeckoPriceProvider {
         source: "coingecko:bitcoin-usd",
       };
     } catch (error) {
+      logPriceFailure("coingecko", error, status);
       if (error instanceof PriceProviderError) throw error;
       throw new PriceProviderError("CoinGecko price request failed.");
     } finally {

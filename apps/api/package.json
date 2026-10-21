@@ -4,10 +4,16 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/server.ts",
+    "dev": "wrangler dev --port 3001",
+    "dev:node": "tsx watch src/server.ts",
+    "db:migrate": "wrangler d1 migrations apply btc-arena-db --local",
+    "db:migrate:remote": "wrangler d1 migrations apply btc-arena-db --remote",
+    "deploy": "wrangler deploy",
+    "pages:deploy": "wrangler pages deploy ../web/dist --project-name epilot-btc-arena",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "build": "esbuild src/lambda.ts src/worker.ts --bundle --platform=node --target=node22 --outdir=dist --format=cjs"
+    "build": "esbuild src/lambda.ts src/worker.ts --bundle --platform=node --target=node22 --outdir=dist --format=cjs",
+    "bundle:worker": "wrangler deploy --dry-run --outdir dist/cloudflare"
   },
   "dependencies": {
     "@arena/shared": "workspace:*",
@@ -24,6 +30,7 @@
     "esbuild": "^0.25.5",
     "tsx": "^4.19.4",
     "typescript": "^5.8.3",
-    "vitest": "^3.2.3"
+    "vitest": "^3.2.3",
+    "wrangler": "^4.151.2"
   }
 }

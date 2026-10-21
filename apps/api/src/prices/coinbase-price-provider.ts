@@ -1,6 +1,8 @@
 import { InvalidPriceError, parsePrice } from "../domain/money.js";
 import type { MarketQuote } from "../domain/rules.js";
-import { PriceProviderError } from "./price-provider.js";
+import { logPriceFailure, PriceProviderError } from "./price-provider.js";
+
+export const COINBASE_USER_AGENT = "epilot-btc-arena";
 
 const tickerSchema = {
   parse(value: unknown): { price: string; time: string } {
@@ -41,11 +43,13 @@ export class CoinbasePriceProvider {
   async getQuote(): Promise<MarketQuote> {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.timeoutMs);
+    let status: number | undefined;
     try {
       const response = await this.fetchImpl(this.url, {
         signal: controller.signal,
-        headers: { accept: "application/json" },
+        headers: { accept: "application/json", "user-agent": COINBASE_USER_AGENT },
       });
+      status = response.status;
       if (!response.ok) {
         throw new PriceProviderError(`Coinbase returned HTTP ${response.status}.`);
       }
@@ -58,6 +62,7 @@ export class CoinbasePriceProvider {
         source: "coinbase-exchange:BTC-USD",
       };
     } catch (error) {
+      logPriceFailure("coinbase", error, status);
       if (error instanceof PriceProviderError || error instanceof InvalidPriceError) throw error;
       throw new PriceProviderError("Coinbase ticker request failed.");
     } finally {
