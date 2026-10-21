@@ -11,7 +11,7 @@ interface PriceCardProps {
 export function PriceCard({ price, observedAt, fresh, loading, unavailable }: PriceCardProps) {
   return (
     <section className="rounded-3xl border border-white/10 bg-white/5 p-5 shadow-xl shadow-black/20">
-      <p className="text-sm text-slate-300">Bitcoin market price</p>
+      <p className="text-sm text-slate-300">BTC/USD</p>
       <h2 className="mt-2 text-4xl font-semibold tracking-tight text-white tabular-nums sm:text-5xl">
         {loading ? "Loading price…" : price ? formatUsd(price) : "—"}
       </h2>

@@ -28,7 +28,7 @@ The API is deployed at `https://epilot-btc-arena-api.btc-arena-demo-2026.workers
 - Hono on Cloudflare Workers. The same routes still run on Node for tests.
 - Zod contracts in `@arena/shared`
 - Cloudflare D1 for scores, Pages for the dashboard, and a one-minute Cron Trigger
-- MEXC public BTC/USDT last trade. CoinGecko and Coinbase stay in the code, but both refuse requests from Cloudflare.
+- Coinbase Exchange public BTC-USD ticker. The quote is the last trade and the time of that trade.
 
 ## Architecture
 
@@ -37,7 +37,7 @@ flowchart LR
   web[React_UI]
   api[Hono_API]
   game[GuessService]
-  prices[MexcPriceProvider]
+  prices[CoinbasePriceProvider]
   db[D1]
   worker[CronTrigger]
   web -->|"Bearer token"| api
@@ -61,14 +61,14 @@ The rule is not "settle exactly at 60 seconds."
 6. If that price is greater than the entry price, UP is correct and DOWN is incorrect.
 7. If it is lower, DOWN is correct and UP is incorrect.
 8. If it is equal, the guess stays pending and is checked again later.
-9. If the price service times out, returns a bad payload, or the trade is older than 60 seconds, the guess stays pending. No score change is invented.
+9. If the price service times out, returns a bad payload, or the trade is older than 15 seconds, the guess stays pending. No score change is invented.
 10. The score changes in one conditional SQL statement. A retry cannot apply it twice.
 
 Prices are decimal strings compared with integers at 8 decimal places. Binary floating point is not used for the result.
 
 ### Limits of the market data
 
-The price is the latest public MEXC BTC/USDT trade, including the time of that trade. Entry and settlement use that same source. Coinbase answers 403 from Cloudflare, and CoinGecko answers 429, so neither can run the deployed Worker. If no newer trade has printed after the deadline, the guess stays open even though 60 seconds have passed. The UI countdown is only a hint. A wrong laptop clock does not change the result, because the deadline and the score are stored on the server. Responses include `serverTime`, and the countdown uses that offset.
+The price is the latest public Coinbase Exchange BTC-USD trade, including the time of that trade. Entry and settlement use that same source. If no newer trade has printed after the deadline, the guess stays open even though 60 seconds have passed. The UI countdown is only a hint. A wrong laptop clock does not change the result, because the deadline and the score are stored on the server. Responses include `serverTime`, and the countdown uses that offset.
 
 ## Getting started
 
@@ -87,8 +87,8 @@ Useful variables:
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `PORT` | `3001` | API port |
-| `PRICE_PROVIDER` | `mexc` | `mexc`, `coingecko`, `coinbase`, or local `mock` |
-| `QUOTE_MAX_AGE_MS` | `60000` | Reject older trades |
+| `PRICE_PROVIDER` | `coinbase` | `coinbase`, `coingecko`, `mexc`, or local `mock` |
+| `QUOTE_MAX_AGE_MS` | `15000` | Reject older Coinbase trades |
 | `ALLOWED_ORIGIN` | `http://localhost:5173` | Browser origin allowed to call the API |
 | `VITE_API_URL` | empty | Set this for a production frontend build |
 
@@ -169,7 +169,7 @@ The free path is Cloudflare Workers, D1, Cron Triggers, and Pages. No AWS accoun
    curl.exe https://epilot-btc-arena-api.btc-arena-demo-2026.workers.dev/api/price
    ```
 
-   Health should return `status: ok`. Price should return the latest MEXC trade. A 503 means MEXC did not answer or the trade was older than 60 seconds.
+   Health should return `status: ok`. Price should return the latest Coinbase BTC-USD trade, with `source` set to `coinbase-exchange:BTC-USD`. A 503 means Coinbase did not answer or the trade was older than 15 seconds.
 
 7. Build the dashboard with that Worker origin and no trailing slash:
 
@@ -201,11 +201,11 @@ The `infrastructure` folder is an earlier AWS sketch. It is not part of this dep
 - One service owns the rules. HTTP handlers, the poll, and the cron handler all call it.
 - One SQL statement deletes the active guess, adds the score, and inserts the result. A retry cannot apply it twice.
 - The browser token is random. The database stores only its SHA-256 hash.
-- The server caches the MEXC trade for 15 seconds so the page can refresh without hammering the public endpoint. Settlement will not reuse a trade from before the deadline.
+- The server caches the Coinbase BTC-USD trade for 4 seconds so the page can refresh without hammering the public endpoint. Settlement will not reuse a trade from before the deadline.
 
 ## Known limitations
 
-- From Cloudflare, CoinGecko returns HTTP 429 and both Coinbase hosts return HTTP 403. The Worker reads the latest MEXC BTC/USDT trade instead. Provider failures still return 503 and do not invent a score. The public error does not include the upstream status. That status is written to the Worker log as `price_provider_failed`.
+- The Worker reads the Coinbase Exchange BTC-USD ticker. A direct probe from this Cloudflare account returned HTTP 200 with the last trade price and its timestamp. CoinGecko still returns HTTP 429 from Workers, and MEXC's public trade is BTC/USDT, so neither is the production source. Provider failures still return 503 and do not invent a score. The public error does not include the upstream status. That status is written to the Worker log as `price_provider_failed`.
 - The API is deployed. The Pages site is not, so there is no dashboard URL yet.
 - The free Cloudflare plan is enough for this game: Workers, D1, Pages, and a minute cron. Cron handles 25 due guesses per run. A closed tab can settle up to about a minute late.
 - D1's free quota is 5 million rows read and 100,000 rows written per day. That is plenty for a review, and a popular public link could hit the write cap.

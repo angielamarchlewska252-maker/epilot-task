@@ -79,6 +79,7 @@ describe("BTC Prediction Arena", () => {
     render(<App />);
 
     expect(await screen.findByText("$70,123.45")).toBeInTheDocument();
+    expect(screen.getByText("BTC/USD")).toBeInTheDocument();
     expectScore("0");
     expect(screen.getByRole("button", { name: "Predict price will go up" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Predict price will go down" })).toBeEnabled();
